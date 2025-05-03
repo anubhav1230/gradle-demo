@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,7 +31,6 @@ jobs:
       run: ./gradlew build
 
   dependency-submission:
-
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -48,3 +46,25 @@ jobs:
 
     - name: Generate and submit dependency graph
       uses: gradle/actions/dependency-submission@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+
+  docker-publish:
+    runs-on: ubuntu-latest
+    needs: build  # Wait for build to complete
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Log in to JFrog Docker Registry
+      run: echo "${{ secrets.JFROG_PASSWORD }}" | docker login trialryy4i9.jfrog.io -u ${{ secrets.JFROG_USERNAME }} --password-stdin
+
+    - name: Build Docker image
+      run: |
+        docker build -t my-app:latest .
+
+    - name: Tag Docker image
+      run: |
+        IMAGE_ID=$(docker images -q my-app:latest)
+        docker tag $IMAGE_ID trialryy4i9.jfrog.io/docker-trial/my-app:${{ github.sha }}
+
+    - name: Push Docker image
+      run: |
+        docker push trialryy4i9.jfrog.io/docker-trial/my-app:${{ github.sha }}
